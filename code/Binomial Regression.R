@@ -1,6 +1,9 @@
 
 # WEEK 4 - BINOMIAL REGRESSION
 
+# Import the players dataset
+league_players <- read.csv("league_players.csv")
+
 # Examine the players dataset
 head(league_players)
 
@@ -42,7 +45,7 @@ table(league_players$position)
 model1 <- glm(injured ~ age + training_load +
                 prev_injuries + position,
               data = league_players,
-              family = binomial
+              family = binomial)
 
 # Display the regression results
 summary(model1)
@@ -97,3 +100,81 @@ plot(new_players$training_load,
      xlab = "Training Load",
      ylab = "Predicted Probability of Injury",
      main = "Training Load and Injury Probability")
+
+
+
+# MODEL DIAGNOSTICS FOR MODEL 2
+# (model2 is the one we kept: lower AIC and position wasn't significant)
+
+# Number of observations and parameters
+n <- nobs(model2)
+p <- length(coef(model2))
+
+# Standardised (deviance) residuals
+std_res <- rstandard(model2)
+
+# Pearson residuals
+pearson_res <- residuals(model2, type = "pearson")
+
+# Leverage values
+lev <- hatvalues(model2)
+
+# Cook's distance
+cd <- cooks.distance(model2)
+
+# Quick summaries
+summary(std_res)
+summary(pearson_res)
+summary(lev)
+summary(cd)
+
+
+# Put the four plots on one page
+par(mfrow = c(2, 2))
+
+# Standardised residuals against fitted values
+plot(fitted(model2), std_res,
+     main = "Standardised residuals vs fitted values",
+     xlab = "Fitted probability of injury",
+     ylab = "Standardised residuals")
+abline(h = 0, lwd = 2)
+abline(h = c(-2, 2), lty = 2, col = "grey")
+
+# Pearson residuals against fitted values
+plot(fitted(model2), pearson_res,
+     main = "Pearson residuals vs fitted values",
+     xlab = "Fitted probability of injury",
+     ylab = "Pearson residuals")
+abline(h = 0, lwd = 2)
+abline(h = c(-2, 2), lty = 2, col = "grey")
+
+# Leverage values, with the 2p/n rule of thumb
+plot(lev, type = "h",
+     main = "Leverage values",
+     xlab = "Observation number",
+     ylab = "Leverage")
+abline(h = 2*p/n, lwd = 2, col = "red")
+
+# Cook's distance, same threshold as the linear regression file
+plot(cd, type = "h",
+     main = "Cook's distance",
+     xlab = "Observation number",
+     ylab = "Cook's distance")
+abline(h = 8/(n - 2*p), lwd = 2, col = "red")
+
+par(mfrow = c(1, 1))
+
+# Residuals come in two bands because the response is 0/1,
+# so the patterns are expected and not a sign of a bad fit
+
+# Players with large standardised residuals
+which(abs(std_res) > 2)
+
+# Players with high leverage
+which(lev > 2*p/n)
+
+# Influential observations
+which(cd > 8/(n - 2*p))
+league_players[which(cd > 8/(n - 2*p)), ]
+# Largest Cook's distance is about 0.025, so no single player
+# is changing the model much
